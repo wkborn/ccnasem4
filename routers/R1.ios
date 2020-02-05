@@ -1,0 +1,91 @@
+enable
+
+conf t
+
+hostname R1
+no ip domain-lookup
+ip domain-name CISCO-LAB.com
+
+enable secret cisco
+
+line con 0
+password cisco
+login
+exit
+
+username admin password 0 cisco
+username R2 password cisco
+
+crypto key generate rsa
+1024
+lin vty 0 4
+transport input ssh
+login local
+exit
+
+banner motd :unauthorized access is prohibited:
+service password-encryption
+
+ip route 0.0.0.0 0.0.0.0 s0/0/0
+
+ipv6 unicast-routing
+ipv6 router eigrp 99
+eigrp router-id 1.1.1.1
+no shutdown
+exit
+
+router bgp 65100
+neighbor 192.168.13.2 remote-as 65200
+network 172.16.1.0 mask 255.255.255.0
+exit
+
+ipv6 access-list IPV6_PING_BLOCK
+deny icmp 2001:ACAD:CAFE:1::0/64 any echo-reply
+permit ip any any
+exit
+
+int s0/0/0
+encapsulation ppp
+ppp authentication chap
+ip addr 198.198.12.1 255.255.255.252
+ipv6 addr 2001:ACAD:CAFE:12::1/64
+ipv6 addr fe80::1 link-local
+ipv6 eigrp 99
+no shut
+exit
+
+int g0/1
+ipv6 traffic-filter IPV6_PING_BLOCK in
+ip addr 172.16.1.1 255.255.255.0
+ipv6 addr 2001:ACAD:CAFE:1::1/64
+ipv6 addr fe80::1 link-local
+ipv6 eigrp 99
+no shut
+exit
+
+int g0/0
+no ip addr
+pppoe enable
+pppoe-client dial-pool-number 1
+no shut
+
+username R1PPP password ciscoppp
+int dialer 1
+encapsulation ppp
+ip address negotiated
+mtu 1492
+dialer pool 1
+ppp authentication chap
+no shut
+exit
+
+ip route 0.0.0.0 0.0.0.0 Dialer1
+
+int Tunnel0
+tunnel mode gre ip
+ip addr 192.168.13.1 255.255.255.252
+tunnel source s0/0/0
+tunnel destination 198.198.23.2
+no shut
+exit
+

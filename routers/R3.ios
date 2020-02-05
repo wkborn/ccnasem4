@@ -1,0 +1,106 @@
+enable
+
+conf t
+
+hostname R3
+no ip domain-lookup
+ip domain-name CISCO-LAB.com
+
+enable secret cisco
+
+line con 0
+password cisco
+login
+exit
+
+username admin password 0 cisco
+username R2 password cisco
+username webadmin password cisco privilege 15
+
+ip http server
+ip http authentication local
+no ip http secure-server
+
+crypto key generate rsa
+1024
+lin vty 0 4
+transport input ssh
+login local
+exit
+
+banner motd :unauthorized access is prohibited:
+service password-encryption
+
+ip route 0.0.0.0 0.0.0.0 s0/0/1
+
+ipv6 unicast-routing
+ipv6 router eigrp 99
+eigrp router-id 3.3.3.3
+no shutdown
+exit
+
+router bgp 65200
+neighbor 192.168.13.1 remote-as 65100
+network 172.16.3.0 mask 255.255.255.0
+network 200.150.100.1 mask 255.255.255.255
+exit
+
+ip nat inside source list 1 interface serial 0/0/1 overload
+access-list 1 permit 172.16.3.1 0.0.0.255
+
+ip access-list extended PING_BLOCK
+10 deny icmp 172.16.3.0 0.0.0.255 any echo-reply
+20 permit ip any any
+exit
+
+ip access-list standard SNMP_PERMIT
+permit 172.16.3.100
+exit
+
+int s0/0/1
+encapsulation ppp
+ppp authentication pap
+ppp pap sent-username R3 password cisco
+ip nat outside
+ip addr 198.198.23.2 255.255.255.252
+ipv6 addr 2001:ACAD:CAFE:23::2/64
+ipv6 addr fe80::3 link-local
+ipv6 eigrp 99
+no shut
+exit
+
+int g0/1
+ip nat inside
+ip access-group PING_BLOCK in
+ip addr 172.16.3.1 255.255.255.0
+ipv6 addr 2001:ACAD:CAFE:3::1/64
+ipv6 addr fe80::3 link-local
+ipv6 eigrp 99
+no shut
+exit
+
+int Loopback 1
+ip addr 200.150.100.1 255.255.255.255
+ipv6 addr 2001:ACAD:CAFE:3333::1/64
+ipv6 eigrp 99
+no shut
+exit
+
+int Tunnel0
+tunnel mode gre ip
+ip addr 192.168.13.2 255.255.255.252
+tunnel source s0/0/1
+tunnel destination 198.198.12.1
+no shut
+exit
+
+snmp-server view SNMP_VIEW iso included
+snmp-server group SNMP_GROUP v3 priv read SNMP_VIEW access SNMP_PERMIT
+snmp-server user USER SNMP_GROUP v3 auth sha cisco priv aes 128 cisco
+
+
+ip sla 1
+icmp-echo 200.150.100.1
+frequency 20
+exit
+ip sla schedule 1 start-time now life forever

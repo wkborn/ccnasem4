@@ -1,0 +1,25 @@
+enable
+
+conf t
+
+hostname S1
+no ip domain-lookup
+ip domain-name CISCO-LAB.com
+
+enable secret cisco
+
+line con 0
+password cisco
+login
+exit
+
+username admin password 0 cisco
+crypto key generate rsa
+1024
+lin vty 0 15
+transport input ssh
+login local
+exit
+
+banner motd :unauthorized access is prohibited:
+service password-encryption

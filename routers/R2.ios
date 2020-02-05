@@ -1,0 +1,72 @@
+enable
+
+conf t
+
+hostname R2
+no ip domain-lookup
+ip domain-name CISCO-LAB.com
+
+enable secret cisco
+
+line con 0
+password cisco
+login
+exit
+
+username admin password 0 cisco
+username R1 password cisco
+username R3 password cisco
+
+crypto key generate rsa
+1024
+lin vty 0 4
+transport input ssh
+login local
+exit
+
+banner motd :unauthorized access is prohibited:
+service password-encryption
+
+
+ipv6 unicast-routing
+ipv6 router eigrp 99
+eigrp router-id 2.2.2.2
+no shutdown
+exit
+
+int s0/0/0
+encapsulation ppp
+ppp authentication chap
+ip addr 198.198.12.2 255.255.255.252
+ipv6 addr 2001:ACAD:CAFE:12::2/64
+ipv6 addr fe80::2 link-local
+ipv6 eigrp 99
+no shut
+exit
+
+int s0/0/1
+encapsulation ppp
+ppp authentication pap
+ppp pap sent-username R2 password cisco
+ip addr 198.198.23.1 255.255.255.252
+ipv6 addr 2001:ACAD:CAFE:23::1/64
+ipv6 addr fe80::2 link-local
+ipv6 eigrp 99
+no shut
+exit
+
+username R1PPP password ciscoppp
+ip local pool PPP_POOL 192.168.1.1 192.168.1.10
+interface virtual-template 1
+ip address 192.168.1.254 255.255.255.0
+mtu 1492
+peer default ip address pool PPP_POOL
+ppp authentication chap callin
+exit
+bba-group pppoe global
+virtual-template 1
+exit
+interface g0/0
+pppoe enable group global
+no shutdown
+exit
